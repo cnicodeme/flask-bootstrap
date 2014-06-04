@@ -30,7 +30,7 @@ class DropDB(Command):
 
 class Test(Command):
     """Run tests."""
-
+    """
     start_discovery_dir = "tests"
 
     def get_options(self):
@@ -39,16 +39,11 @@ class Test(Command):
                    help='Pattern to search for features',
                    default=self.start_discovery_dir),
         ]
-
-    def run(self, start_discovery):
+    """
+    def run(self):
         import unittest
+        from tests import BlueprintTesting
 
-        if os.path.exists(start_discovery):
-            argv = [config.project_name, "discover"]
-            argv += ["-s", start_discovery]
-
-            unittest.main(argv=argv)
-        else:
-            print("Directory '%s' was not found in project root." % start_discovery)
+        unittest.TextTestRunner(verbosity=2).run(BlueprintTesting().suite())
 
 

@@ -6,4 +6,3 @@ Flask-SQLAlchemy
 Flask-WTF
 Flask-Mail
 py-bcrypt
-boto
