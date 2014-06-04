@@ -1,0 +1,9 @@
+Flask
+Jinja2
+Werkzeug
+Flask-Script
+Flask-SQLAlchemy
+Flask-WTF
+Flask-Mail
+py-bcrypt
+boto
