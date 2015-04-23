@@ -21,6 +21,5 @@ Differences with Flask-Empty
 ----------------------------
 
 * We decided to automatically use SQLAlchemy features, so everything related to the database is enabled by default.
-* We also improved the way the templates are handled in the blueprints
 * We optimized the Test suite to implemente Tests for every Blueprints independantly.
 * Finally, we added some features in the utils package to simplify the development of projects.

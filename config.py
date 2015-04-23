@@ -62,7 +62,7 @@ class Prod(Config):
 
 
 class Dev(Config):
-    SQLALCHEMY_DATABASE_URI = "mysql://root:root@127.0.0.1/meels?charset=utf8"
+    SQLALCHEMY_DATABASE_URI = "mysql://root:root@127.0.0.1/database?charset=utf8"
 
     DEBUG = True
     MAIL_DEBUG = True

@@ -1,5 +1,6 @@
 # -*- config:utf-8 -*-
-
+from flask_wtf import Form
+from database import db
 
 class ORModel(object):
     @classmethod
@@ -34,3 +35,29 @@ class ORModel(object):
     def delete(self, commit=True):
         db.session.delete(self)
         return commit and db.session.commit()
+
+import sqlalchemy.types as types
+
+class DbAmount(types.TypeDecorator):
+    impl = types.Integer
+
+    def load_dialect_impl(self, dialect):
+        return dialect.type_descriptor(types.Integer)
+
+
+    def process_bind_param(self, value, dialect):
+        if not value:
+            return None
+
+        return float(value) * 100
+
+
+    def process_result_value(self, value, dialect):
+        if not value:
+            return 0
+
+        result = "{0:.2f}".format(float(value)/100)
+        if result[-3:] == '.00':
+            return result[0:-3]
+
+        return result

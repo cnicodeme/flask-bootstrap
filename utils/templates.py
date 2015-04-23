@@ -1,22 +1,38 @@
 # -*- coding:utf-8 -*-
 
-from flask.templating import DispatchingJinjaLoader
-from flask.globals import _request_ctx_stack
+from jinja2 import evalcontextfilter, Markup
+from flask import request
+import cgi
+import urllib
 
-class ModifiedLoader(DispatchingJinjaLoader):
-    """
-    This modification first looks in the "template" folder of
-    the blueprint if exists, then in the global template.
+@evalcontextfilter
+def nl2br(eval_ctx, value):
+    if not value:
+        return value
 
-    It's way more logical and better :)
-    """
-    def _iter_loaders(self, template):
-        bp = _request_ctx_stack.top.request.blueprint
-        if bp is not None and bp in self.app.blueprints:
-            loader = self.app.blueprints[bp].jinja_loader
-            if loader is not None:
-                yield loader, template
+    # We use cgi because jinja2.escape doesn't seems to work correctly in our case
+    value = cgi.escape(value, True)
+    value = value.replace('\r\n', '\n').replace('\r', '\n').replace('\n', '<br />')
 
-        loader = self.app.jinja_loader
-        if loader is not None:
-            yield loader, template
+    if eval_ctx.autoescape:
+        value = Markup(value)
+
+    return value
+
+def dateformat(value, format = '%d/%m/%Y'):
+    if not value:
+        return ''
+
+    return value.strftime(format)
+
+def timeformat(value, format = '%H:%M:%S'):
+    if not value:
+        return ''
+
+    return value.strftime(format)
+
+def datetimeformat(value, format = '%d/%m/%Y %H:%M'):
+    if not value:
+        return ''
+
+    return value.strftime(format.encode('utf-8')).decode('utf-8')

@@ -1,16 +1,13 @@
 # -*- coding:utf-8 -*-
 
-import os
-import sys
+import os, sys, logging
 
-import logging
 from logging.handlers import SMTPHandler
 from logging import Formatter
 
-from flask import Flask, render_template
+from flask import Flask, render_template, send_from_directory, request
 
 from utils.mails import TlsSMTPHandler
-from utils.templates import ModifiedLoader
 
 # apps is a special folder where you can place your blueprints
 PROJECT_PATH = os.path.abspath(os.path.dirname(__file__))
@@ -32,7 +29,7 @@ def config_str_to_obj(cfg):
 
 def app_factory(config, app_name=None, blueprints=None):
     app_name = app_name or __name__
-    app = Flask(app_name)
+    app = Flask(app_name, static_url_path="/public")
 
     config = config_str_to_obj(config)
     configure_app(app, config)
@@ -166,11 +163,10 @@ def configure_context_processors(app):
 def configure_template_filters(app):
     """Configure filters and tags for jinja"""
 
-    # jinja_options is an ImmutableDict, so we have to do this song and dance
-    app.jinja_options = Flask.jinja_options.copy() 
-    app.jinja_options['loader'] = ModifiedLoader(app)
-
-    pass
+    app.jinja_env.filters['nl2br'] = import_string('utils.templates.nl2br')
+    app.jinja_env.filters['dateformat'] = import_string('utils.templates.dateformat')
+    app.jinja_env.filters['timeformat'] = import_string('utils.templates.timeformat')
+    app.jinja_env.filters['datetimeformat'] = import_string('utils.templates.datetimeformat')
 
 
 def configure_extensions(app):
@@ -184,7 +180,12 @@ def configure_before_request(app):
 
 def configure_views(app):
     """Add some simple views here like index_view"""
-    
+
+    @app.route('/robots.txt')
+    @app.route('/sitemap.xml')
+    def static_from_root():
+        return send_from_directory(app.static_folder, request.path[1:])
+
     @app.route("/")
     def index_view():
         return render_template("index.html")

@@ -11,6 +11,14 @@ class Brand(db.Model, ORModel):
     brand = db.Column(db.String(100))
     website = db.Column(db.String(100))
 
+    @classmethod
+    def find_all(cls):
+        return cls.query.order_by(cls.creation_datetime.asc()).all()
+
+    @classmethod
+    def find_by_id(cls, id):
+        return cls.query.filter(cls.id == id).first()
+
 
 class SKU(db.Model, ORModel):
     __tablename__ = 'sku'
@@ -28,8 +36,15 @@ class SKU(db.Model, ORModel):
     mean_score = db.Column(db.SmallInteger)
     #comments
 
+    @classmethod
+    def find_all(cls, brand_id):
+        return cls.query.filter(cls.brand_id == brand_id).order_by(cls.creation_datetime.asc()).all()
 
-# TODO: this probably should move to another app
+    @classmethod
+    def find_by_id(cls, id):
+        return cls.query.filter(cls.id == id).first()
+
+
 class Comment(db.Model, ORModel):
     __tablename__ = 'comment'
 
