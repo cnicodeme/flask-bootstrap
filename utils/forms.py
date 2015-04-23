@@ -1,5 +1,7 @@
 # -*- coding:utf-8 -*-
 
+from flask_wtf import Form
+from flask import jsonify
 
 class BaseForm(Form):
     def errors_as_json(self):
