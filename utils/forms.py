@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-
+from flask_wtf import Form
 
 class BaseForm(Form):
     def errors_as_json(self):

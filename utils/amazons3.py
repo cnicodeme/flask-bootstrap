@@ -11,8 +11,8 @@ class AmazonS3(object):
     def __init__(self):
         self.conn = S3Connection(current_app.config['AWS_ACCESS_KEY'], current_app.config['AWS_SECRET_KEY'])
 
-    def _get_bucket(self, name):
-        return self.conn.get_bucket(name)
+    def _get_bucket(self):
+        return self.conn.get_bucket(current_app.config['AWS_BUCKET'], validate=False)
 
-    def get_file(self, bucket, file):
-        return Key(bucket=self._get_bucket(bucket), name=file)
+    def get_file(self, file):
+        return Key(bucket=self._get_bucket(), name=file)

@@ -63,7 +63,15 @@ def configure_logger(app, config):
         log_file.setLevel(config.LOG_LEVEL)
         app.logger.addHandler(log_file)
 
-        mail_handler = TlsSMTPHandler((app.config['MAIL_SERVER'], app.config['MAIL_PORT']), app.config['MAIL_ERROR_SOURCE'], app.config['MAIL_ERROR_DEST'], app.config['MAIL_ERROR_SUBJECT'], (app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD']))
+        mail_handler = TlsSMTPHandler(
+            mailhost    = (app.config['MAIL_SERVER'], app.config['MAIL_PORT']),
+            fromaddr    = app.config['MAIL_ERROR_SOURCE'],
+            toaddrs     = app.config['MAIL_ERROR_DEST'],
+            subject     = app.config['MAIL_ERROR_SUBJECT'],
+            credentials = (app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD']),
+            secure      = ()
+        )
+        
         mail_handler.setLevel(logging.ERROR)
         mail_handler.setFormatter(Formatter('''
             Message type:       %(levelname)s
