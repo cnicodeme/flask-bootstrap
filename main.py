@@ -4,7 +4,7 @@ import os, sys, logging
 
 from logging.handlers import SMTPHandler
 from logging import Formatter
-
+from werkzeug import import_string
 from flask import Flask, render_template, send_from_directory, request
 
 from utils.mails import TlsSMTPHandler
