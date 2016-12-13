@@ -3,6 +3,7 @@
 from database import db
 from utils.models import ORModel
 
+
 class Brand(db.Model, ORModel):
     __tablename__ = 'brand'
 
@@ -34,7 +35,7 @@ class SKU(db.Model, ORModel):
     details = db.Column(db.Text)
     technical_details = db.Column(db.Text)
     mean_score = db.Column(db.SmallInteger)
-    #comments
+    # comments
 
     @classmethod
     def find_all(cls, brand_id):

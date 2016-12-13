@@ -5,7 +5,6 @@ from werkzeug.utils import import_string
 from unittest import TestCase
 import os, unittest, config
 
-import json
 
 class BlueprintTesting():
     def suite(self):
@@ -41,8 +40,8 @@ class BlueprintTesting():
         module = import_string(package)
         suite.addTest(unittest.findTestCases(module))
 
-class BaseTestCase(TestCase):
 
+class BaseTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
         print ""
@@ -57,7 +56,7 @@ class BaseTestCase(TestCase):
         drop_all()
         create_all()
 
-        #db.engine.execute('INSERT INTO ...') # Maybe some default datas ?
+        db.engine.execute('INSERT INTO ...')  # Maybe some default datas ?
 
     @classmethod
     def tearDownClass(cls):
@@ -66,6 +65,7 @@ class BaseTestCase(TestCase):
         drop_all()
         remove_session()
 
+        db.engine.execute('DELETE FROM ...')  # Maybe some default datas ?
 
     def setUp(self):
         pass

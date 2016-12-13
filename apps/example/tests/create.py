@@ -2,6 +2,7 @@
 
 from tests import BaseTestCase
 
+
 class TestCreate(BaseTestCase):
     __display__ = "Example > Create"
 

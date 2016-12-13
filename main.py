@@ -2,12 +2,8 @@
 
 import os, sys, logging
 
-from logging.handlers import SMTPHandler
-from logging import Formatter
 from werkzeug import import_string
-from flask import Flask, render_template, send_from_directory, request
-
-from utils.mails import TlsSMTPHandler
+from flask import Flask, render_template, send_from_directory, request, make_response
 
 # apps is a special folder where you can place your blueprints
 PROJECT_PATH = os.path.abspath(os.path.dirname(__file__))
@@ -20,18 +16,10 @@ def __import_variable(blueprint_path, module, variable_name):
     return getattr(mod, variable_name)
 
 
-def config_str_to_obj(cfg):
-    if isinstance(cfg, basestring):
-        module = __import__('config', fromlist=[cfg])
-        return getattr(module, cfg)
-    return cfg
-
-
 def app_factory(config, app_name=None, blueprints=None):
     app_name = app_name or __name__
     app = Flask(app_name, static_url_path="/public")
 
-    config = config_str_to_obj(config)
     configure_app(app, config)
     configure_logger(app, config)
     configure_blueprints(app, blueprints or config.BLUEPRINTS)
@@ -40,7 +28,7 @@ def app_factory(config, app_name=None, blueprints=None):
     configure_context_processors(app)
     configure_template_filters(app)
     configure_extensions(app)
-    configure_before_request(app)
+    configure_before_after_request(app)
     configure_views(app)
 
     return app
@@ -53,38 +41,14 @@ def configure_app(app, config):
 
 
 def configure_logger(app, config):
-    log_filename = config.LOG_FILENAME
-
     if not app.debug:
         # Create a file logger since we got a logdir
-        log_file = logging.FileHandler(filename=log_filename)
+        stream_handler = logging.StreamHandler()
         formatter = logging.Formatter(config.LOG_FORMAT)
-        log_file.setFormatter(formatter)
-        log_file.setLevel(config.LOG_LEVEL)
-        app.logger.addHandler(log_file)
+        stream_handler.setFormatter(formatter)
+        app.logger.addHandler(stream_handler)
 
-        mail_handler = TlsSMTPHandler(
-            mailhost    = (app.config['MAIL_SERVER'], app.config['MAIL_PORT']),
-            fromaddr    = app.config['MAIL_ERROR_SOURCE'],
-            toaddrs     = app.config['MAIL_ERROR_DEST'],
-            subject     = app.config['MAIL_ERROR_SUBJECT'],
-            credentials = (app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD']),
-            secure      = ()
-        )
-        
-        mail_handler.setLevel(logging.ERROR)
-        mail_handler.setFormatter(Formatter('''
-            Message type:       %(levelname)s
-            Location:           %(pathname)s:%(lineno)d
-            Module:             %(module)s
-            Function:           %(funcName)s
-            Time:               %(asctime)s
-
-            Message:
-
-            %(message)s
-            '''))
-        app.logger.addHandler(mail_handler)
+        app.logger.setLevel(config.LOG_LEVEL)
 
     app.logger.info("Logger started")
 
@@ -113,6 +77,10 @@ def configure_blueprints(app, blueprints):
 
 
 def configure_error_handlers(app):
+    @app.errorhandler(401)
+    def authorization_required(e):
+        return make_response(jsonify({'error': 'Authorization required.', 'code': 401}), 401)
+
     @app.errorhandler(403)
     def forbidden_page(error):
         """
@@ -124,7 +92,8 @@ def configure_error_handlers(app):
         information available to the client, the status code 404 (Not Found)
         can be used instead.
         """
-        return render_template("errors/403.html"), 403
+        return make_response(render_template("errors/403.html"), 403)
+        # return make_response(jsonify({'error': 'Access Forbidden.', 'code': 403}), 403)
 
     @app.errorhandler(404)
     def page_not_found(error):
@@ -137,7 +106,8 @@ def configure_error_handlers(app):
         server does not wish to reveal exactly why the request has been refused,
         or when no other response is applicable.
         """
-        return render_template("errors/404.html"), 404
+        return make_response(render_template("errors/404.html"), 404)
+        # return make_response(jsonify({'error': 'Page not found.', 'code': 404}), 404)
 
     @app.errorhandler(405)
     def method_not_allowed_page(error):
@@ -146,21 +116,34 @@ def configure_error_handlers(app):
         identified by the Request-URI. The response MUST include an Allow header
         containing a list of valid methods for the requested resource.
         """
-        return render_template("errors/404.html"), 405
+        return make_response(render_template("errors/404.html"), 405)
+        # return make_response(jsonify({'error': 'Method not allowed.', 'code': 405}), 405)
+
+    @app.errorhandler(410)
+    def request_gone(e):
+        return make_response(jsonify({'error': 'Gone.', 'code': 410}), 410)
+
+    if app.debug:
+        return
 
     @app.errorhandler(500)
+    @app.errorhandler(Exception)
     def server_error_page(error):
-        return render_template("errors/500.html"), 500
+        app.logger.exception(e)
+        return make_response(render_template("errors/500.html"), 500)
+        # return make_response(jsonify({'error': 'Internal server error. We were notified!', 'code': 500}), 500)
 
 
 def configure_database(app):
     """
     Database configuration should be set here
     """
-    # uncomment for sqlalchemy support
     from database import db
     db.app = app
     db.init_app(app)
+
+    from flask_migrate import Migrate
+    Migrate(app, db)
 
 
 def configure_context_processors(app):
@@ -182,7 +165,7 @@ def configure_extensions(app):
     pass
 
 
-def configure_before_request(app):
+def configure_before_after_request(app):
     pass
 
 
@@ -193,10 +176,6 @@ def configure_views(app):
     @app.route('/sitemap.xml')
     def static_from_root():
         return send_from_directory(app.static_folder, request.path[1:])
-
-    @app.route("/")
-    def index_view():
-        return render_template("index.html")
 
     #for rule in app.url_map.iter_rules():
     #    print rule

@@ -1,18 +1,18 @@
 # -*- coding:utf-8 -*-
 
-from flask.ext import script
+import flask_script
+from main import app_factory
+import commands, config
 
-import commands
+from flask_migrate import MigrateCommand
+
+manager = flask_script.Manager(app_factory)
+manager.add_option("-c", "--config", dest="config", required=False, default=config.Dev)
+
+manager.add_command("test", commands.Test())
+manager.add_command("create_db", commands.CreateDB())
+manager.add_command("drop_db", commands.DropDB())
+manager.add_command('db', MigrateCommand)
 
 if __name__ == "__main__":
-    from main import app_factory
-    import config
-
-    manager = script.Manager(app_factory)
-    manager.add_option("-c", "--config", dest="config", required=False, default=config.Dev)
-    manager.add_command("test", commands.Test())
-
-    manager.add_command("create_db", commands.CreateDB())
-    manager.add_command("drop_db", commands.DropDB())
-
     manager.run()

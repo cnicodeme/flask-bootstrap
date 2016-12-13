@@ -3,6 +3,7 @@ Jinja2
 Werkzeug
 Flask-Script
 Flask-SQLAlchemy
-Flask-WTF
-Flask-Mail
+Flask-Migrate
+WTForms
+requests
 py-bcrypt

@@ -1,9 +1,8 @@
 # -*- coding:utf-8 -*-
 
 from jinja2 import evalcontextfilter, Markup
-from flask import request
 import cgi
-import urllib
+
 
 @evalcontextfilter
 def nl2br(eval_ctx, value):
@@ -19,19 +18,22 @@ def nl2br(eval_ctx, value):
 
     return value
 
-def dateformat(value, format = '%d/%m/%Y'):
+
+def dateformat(value, format='%d/%m/%Y'):
     if not value:
         return ''
 
     return value.strftime(format)
 
-def timeformat(value, format = '%H:%M:%S'):
+
+def timeformat(value, format='%H:%M:%S'):
     if not value:
         return ''
 
     return value.strftime(format)
 
-def datetimeformat(value, format = '%d/%m/%Y %H:%M'):
+
+def datetimeformat(value, format='%d/%m/%Y %H:%M'):
     if not value:
         return ''
 

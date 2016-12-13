@@ -1,9 +1,6 @@
 # -*- coding:utf-8 -*-
 
-from flask.ext.script import Command, Option, prompt_bool
-
-import os
-import config
+from flask_script import Command, Option
 
 
 class CreateDB(Command):
@@ -30,7 +27,7 @@ class DropDB(Command):
 
 class Test(Command):
     """Run tests."""
-    """
+
     start_discovery_dir = "tests"
 
     def get_options(self):
@@ -39,11 +36,9 @@ class Test(Command):
                    help='Pattern to search for features',
                    default=self.start_discovery_dir),
         ]
-    """
+
     def run(self):
         import unittest
         from tests import BlueprintTesting
 
         unittest.TextTestRunner(verbosity=2).run(BlueprintTesting().suite())
-
-
