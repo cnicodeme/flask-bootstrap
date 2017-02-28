@@ -3,6 +3,7 @@
 from functools import wraps
 from flask import session, abort
 
+
 def authenticated(view_func):
     def _decorator(*args, **kwargs):
         if not 'email' in session:

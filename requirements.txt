@@ -6,4 +6,3 @@ Flask-SQLAlchemy
 Flask-Migrate
 WTForms
 requests
-py-bcrypt

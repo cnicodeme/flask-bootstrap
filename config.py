@@ -3,10 +3,6 @@
 import logging
 from datetime import timedelta
 import os
-from dotenv import Dotenv
-
-dotenv = Dotenv(os.path.join(os.path.dirname(__file__), ".env"))
-os.environ.update(dotenv)
 
 
 class Config(object):
@@ -14,17 +10,18 @@ class Config(object):
     APPLICATION_PATH = os.path.dirname(os.path.abspath(__file__))
 
     # use DEBUG mode?
-    DEBUG = os.getenv('DEBUG', False)
+    DEBUG = True
 
     # use TESTING mode?
-    TESTING = os.getenv('DEBUG_TESTING', False)
+    TESTING = False
 
     # use server x-sendfile?
     USE_X_SENDFILE = False
 
     # DATABASE CONFIGURATION
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URI', None)
-    SQLALCHEMY_ECHO = os.getenv('DATABASE_DEBUG', False)
+    SQLALCHEMY_DATABASE_URI = None
+    SQLALCHEMY_ECHO = False
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     CSRF_ENABLED = True
     WTF_CSRF_ENABLED = True
@@ -32,7 +29,6 @@ class Config(object):
 
     # LOGGING
     LOG_LEVEL = logging.INFO
-    LOG_FORMAT = "%(asctime)s %(levelname)s\t: %(message)s"  # used by logging.Formatter
 
     SESSION_COOKIE_HTTPONLY = False
     SESSION_COOKIE_SECURE = True

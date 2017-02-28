@@ -1,16 +1,17 @@
 # -*- config:utf-8 -*-
 
-from flask_wtf import Form
+from utils.forms import BaseForm
 from database import db
 import sqlalchemy.types as types
 import datetime
+
 
 class ORModel(object):
     @classmethod
     def create(cls, form=None, **kwargs):
         if form:
-            if not isinstance(form, Form):
-                raise Exception("Given form \"{0}\" in Model must be an instance of wtforms.Form".format(form.__class__.__name__))
+            if not isinstance(form, BaseForm):
+                raise Exception("Given form \"{0}\" in Model must be an instance of utils.BaseForm".format(form.__class__.__name__))
 
             kwargs = form.get_as_dict()
 
@@ -26,8 +27,8 @@ class ORModel(object):
 
     def update(self, form=None, **kwargs):
         if form:
-            if not isinstance(form, Form):
-                raise Exception("Given form \"{0}\" in Model must be an instance of wtforms.Form".format(form.__class__.__name__))
+            if not isinstance(form, BaseForm):
+                raise Exception("Given form \"{0}\" in Model must be an instance of utils.BaseForm".format(form.__class__.__name__))
 
             kwargs = form.get_as_dict()
 
@@ -36,13 +37,13 @@ class ORModel(object):
 
         return self
 
-    def save(self, commit=True):
+    def save(self, commit=False):
         db.session.add(self)
         if commit:
             db.session.commit()
         return self
 
-    def delete(self, commit=True):
+    def delete(self, commit=False):
         db.session.delete(self)
         if commit:
             return db.session.commit()

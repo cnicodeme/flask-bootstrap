@@ -3,31 +3,10 @@
 from flask_script import Command, Option
 
 
-class CreateDB(Command):
-    """
-    Creates database using SQLAlchemy
-    """
-
-    def run(self):
-        from database import create_all
-
-        create_all()
-
-
-class DropDB(Command):
-    """
-    Drops database using SQLAlchemy
-    """
-
-    def run(self):
-        from database import drop_all
-
-        drop_all()
-
-
 class Test(Command):
     """Run tests."""
 
+    name = "test"  # By default, will use the name of the class
     start_discovery_dir = "tests"
 
     def get_options(self):
