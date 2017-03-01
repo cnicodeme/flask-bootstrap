@@ -1,9 +1,10 @@
 # -*- coding:utf-8 -*-
 
-import os, sys, logging
-
 from werkzeug import import_string
 from flask import Flask, request, make_response, jsonify, send_from_directory
+from config import Config
+import os, sys, logging
+
 
 # apps is a special folder where you can place your blueprints
 PROJECT_PATH = os.path.abspath(os.path.dirname(__file__))
@@ -16,13 +17,13 @@ def __import_variable(blueprint_path, module, variable_name):
     return getattr(mod, variable_name)
 
 
-def app_factory(config, app_name=None, blueprints=None):
+def app_factory(app_name=None, blueprints=None):
     app_name = app_name or __name__
     app = Flask(app_name, static_url_path="/public")
 
-    configure_app(app, config)
-    configure_logger(app, config)
-    configure_blueprints(app, blueprints or config.BLUEPRINTS)
+    configure_app(app, Config)
+    configure_logger(app, Config)
+    configure_blueprints(app, blueprints or Config.BLUEPRINTS)
     configure_error_handlers(app)
     configure_database(app)
     configure_context_processors(app)
@@ -112,10 +113,10 @@ def configure_database(app):
     Database configuration should be set here
     """
     from database import db
+    from flask_migrate import Migrate
+
     db.app = app
     db.init_app(app)
-
-    from flask_migrate import Migrate
     Migrate(app, db)
 
 
@@ -139,7 +140,15 @@ def configure_extensions(app):
 
 
 def configure_before_after_request(app):
-    pass
+    @app.after_request
+    def after_request_cors(response):
+        """ Implementing CORS """
+        h = response.headers
+        h.add('Access-Control-Allow-Origin', '*')
+        h.add('Access-Control-Allow-Methods', 'HEAD, GET, POST, PUT, DELETE, OPTIONS')
+        h.add('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Host, Authorization')
+
+        return response
 
 
 def configure_views(app):

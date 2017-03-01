@@ -3,11 +3,11 @@
 from flask_script import Command, Option
 
 
-class Test(Command):
+class Tests(Command):
     """Run tests."""
 
     name = "test"  # By default, will use the name of the class
-    start_discovery_dir = "tests"
+    start_discovery_dir = "test"
 
     def get_options(self):
         return [

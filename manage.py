@@ -1,26 +1,39 @@
 # -*- coding:utf-8 -*-
 
 from main import app_factory
-import commands, config, flask_script
+import flask_script, os
 from flask_migrate import MigrateCommand
+from werkzeug import import_string
 
-manager = flask_script.Manager(app_factory)
-manager.add_option("-c", "--config", dest="config", required=False, default=config.Config)
 
-manager.add_command('db', MigrateCommand)
+def load_commands(manager):
+    # Loading commands
+    scripts = os.path.join(os.path.dirname(__file__), "scripts")
+    for file in os.listdir(scripts):
+        if not os.path.isfile(os.path.join(scripts, file)):
+            continue
 
-for command_str in dir(commands):
-    if command_str in ('Command', 'Option'):
-        continue
-    if command_str[0:2] == '__':
-        continue
+        if file == '__init__.py':
+            continue
 
-    command = getattr(commands, command_str)
-    command_name = getattr(command, 'name', None)
-    if command_name is None:
-        command_name = command_str.lower()
+        if file[-3:] != '.py':
+            continue
 
-    manager.add_command(command_name, command())
+        filename = file[:-3]
+        objectname = ''.join([x.capitalize() for x in filename.split('_')])
+
+        command = import_string('scripts.{0}.{1}'.format(filename, objectname))
+        command_name = getattr(command, "name", None)
+        if command_name is None:
+            command_name = filename
+
+        manager.add_command(command_name, command())
+
 
 if __name__ == "__main__":
+    manager = flask_script.Manager(app_factory)
+    manager.add_command('db', MigrateCommand)
+
+    load_commands(manager)
+
     manager.run()
