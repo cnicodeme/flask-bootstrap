@@ -6,3 +6,4 @@ Flask-SQLAlchemy
 Flask-Migrate
 WTForms
 requests
+redis

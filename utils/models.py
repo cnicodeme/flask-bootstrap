@@ -11,7 +11,7 @@ class ORModel(object):
     def create(cls, form=None, **kwargs):
         if form:
             if not isinstance(form, BaseForm):
-                raise Exception("Given form \"{0}\" in Model must be an instance of utils.BaseForm".format(form.__class__.__name__))
+                raise Exception("Given form \"{0}\" in Model must be an instance of utils.forms.BaseForm".format(form.__class__.__name__))
 
             kwargs = form.get_as_dict()
 
@@ -28,7 +28,7 @@ class ORModel(object):
     def update(self, form=None, **kwargs):
         if form:
             if not isinstance(form, BaseForm):
-                raise Exception("Given form \"{0}\" in Model must be an instance of utils.BaseForm".format(form.__class__.__name__))
+                raise Exception("Given form \"{0}\" in Model must be an instance of utils.forms.BaseForm".format(form.__class__.__name__))
 
             kwargs = form.get_as_dict()
 
@@ -49,6 +49,45 @@ class ORModel(object):
             return db.session.commit()
 
         return True
+
+    @classmethod
+    def _query(cls, params, _ignore=()):
+        query = cls.query
+        for key in params:
+            if key in _ignore:
+                continue
+            if key in ('order_by', 'limit', 'page'):
+                continue
+
+            query = query.filter(getattr(cls, key) == params[key])
+
+        order_by = None
+        order_way = 'asc'
+
+        if 'order_by' not in _ignore and 'order_by' in params:
+            order_by = params['order_by']
+            if params['order_by'][0:1] == '-':
+                order_way = 'desc'
+                order_by = params['order_by'][1:]
+            params.pop('order_by', None)
+
+        if order_by:
+            query = query.order_by(getattr(getattr(cls, order_by), order_way)())
+
+        return query
+
+    @classmethod
+    def all(cls, **kwargs):
+        return cls._query(kwargs).all()
+
+    @classmethod
+    def first(cls, **kwargs):
+        return cls._query(kwargs).first()
+
+    @classmethod
+    def count(cls, query):
+        count_q = query.statement.with_only_columns([func.count()]).order_by(None)
+        return query.session.execute(count_q).scalar()
 
 
 class JsonSerializable(object):

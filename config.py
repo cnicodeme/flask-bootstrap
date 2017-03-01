@@ -37,6 +37,8 @@ class Config(object):
     CONTACT_NAME = ''
     CONTACT_EMAIL = ''
 
+    SPARKPOST_KEY = None
+
     # ex: BLUEPRINTS = ['blog']  # where app is a Blueprint instance
     # ex: BLUEPRINTS = [('blog', {'url_prefix': '/myblog'})]  # where app is a Blueprint instance
     BLUEPRINTS = [
