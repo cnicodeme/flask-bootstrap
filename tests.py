@@ -12,7 +12,7 @@ class BlueprintTesting():
         suite = unittest.TestSuite()
 
         for blueprint in config.Testing.BLUEPRINTS:
-            if isinstance(blueprint, basestring):
+            if isinstance(blueprint, str):
                 package = blueprint
             else:
                 package = blueprint[0]
@@ -44,8 +44,8 @@ class BlueprintTesting():
 class BaseTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
-        print ""
-        print cls.__display__
+        print("")
+        print(cls.__display__)
 
         from main import app_factory
         from database import db, create_all, drop_all

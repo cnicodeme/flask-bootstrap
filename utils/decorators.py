@@ -6,7 +6,7 @@ from flask import session, abort
 
 def authenticated(view_func):
     def _decorator(*args, **kwargs):
-        if not 'email' in session:
+        if 'email' not in session:
             return abort(403)
 
         """

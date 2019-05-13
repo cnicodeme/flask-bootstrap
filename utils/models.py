@@ -3,6 +3,7 @@
 from utils.forms import BaseForm
 from database import db
 import sqlalchemy.types as types
+from sqlalchemy import func
 import datetime
 
 

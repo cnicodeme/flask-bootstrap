@@ -2,8 +2,17 @@
 
 from werkzeug import import_string
 from flask import Flask, request, make_response, jsonify, send_from_directory
+from werkzeug.exceptions import HTTPException
 from config import Config
-import os, sys, logging
+from utils.queue import RedisQueue
+from logging.handlers import SysLogHandler
+import os, sys, logging, socket
+
+try:
+    import sentry_sdk
+    from sentry_sdk.integrations.flask import FlaskIntegration
+except ImportError:
+    pass
 
 
 # apps is a special folder where you can place your blueprints
@@ -15,6 +24,14 @@ def __import_variable(blueprint_path, module, variable_name):
     path = '.'.join(blueprint_path.split('.') + [module])
     mod = __import__(path, fromlist=[variable_name])
     return getattr(mod, variable_name)
+
+
+class _ContextFilter(logging.Filter):
+    hostname = socket.gethostname()
+
+    def filter(self, record):
+        record.hostname = self.hostname
+        return True
 
 
 def app_factory(app_name=None, blueprints=None):
@@ -43,13 +60,22 @@ def configure_app(app, config):
 
 def configure_logger(app, config):
     if not app.debug:
-        # Create a file logger since we got a logdir
-        stream_handler = logging.StreamHandler()
-        formatter = logging.Formatter("%(asctime)s %(levelname)s\t: %(message)s")
-        stream_handler.setFormatter(formatter)
-        app.logger.addHandler(stream_handler)
+        if app.config.get('SENTRY_DSN', None) is not None:
+            sentry_sdk.init(app.config.get('SENTRY_DSN'), integrations=[FlaskIntegration()])
 
-        app.logger.setLevel(config.LOG_LEVEL)
+        if app.config.get('PAPERTRAIL_HOST', None):
+            syslog = SysLogHandler(address=(
+                app.config.get('PAPERTRAIL_HOST'),
+                int(app.config.get('PAPERTRAIL_PORT'))
+            ))
+            formatter = logging.Formatter(
+                '%(asctime)s %(hostname)s: %(levelname)s %(message)s',
+                datefmt='%b %d %H:%M:%S'
+            )
+            syslog.setFormatter(formatter)
+            syslog.setLevel(logging.WARNING)
+            syslog.addFilter(_ContextFilter())
+            app.logger.addHandler(syslog)
 
     app.logger.info("Logger started")
 
@@ -59,14 +85,14 @@ def configure_blueprints(app, blueprints):
     for blueprint_config in blueprints:
         blueprint, kw = None, {}
 
-        if isinstance(blueprint_config, basestring):
+        if isinstance(blueprint_config, str):
             blueprint = blueprint_config
         elif isinstance(blueprint_config, tuple):
             blueprint = blueprint_config[0]
             kw = blueprint_config[1]
         else:
-            print "Error in BLUEPRINTS setup in config.py"
-            print "Please, verify if each blueprint setup is either a string or a tuple."
+            print("Error in BLUEPRINTS setup in config.py")
+            print("Please, verify if each blueprint setup is either a string or a tuple.")
             exit(1)
 
         blueprint = __import_variable(blueprint, 'views', 'app')
@@ -78,25 +104,13 @@ def configure_blueprints(app, blueprints):
 
 
 def configure_error_handlers(app):
-    @app.errorhandler(401)
-    def authorization_required(e):
-        return make_response(jsonify({'error': 'Authorization required.', 'code': 401}), 401)
+    @app.errorhandler(HTTPException)
+    def _handle_http_exception(e):
+        response = e.get_response(None)
+        if response.headers.get('content-type') == 'application/json':
+            return response
 
-    @app.errorhandler(403)
-    def access_forbidden(e):
-        return make_response(jsonify({'error': 'Access Forbidden.', 'code': 403}), 403)
-
-    @app.errorhandler(404)
-    def page_not_found(e):
-        return make_response(jsonify({'error': 'Page not found.', 'code': 404}), 404)
-
-    @app.errorhandler(405)
-    def method_not_allowed(e):
-        return make_response(jsonify({'error': 'Method not allowed.', 'code': 405}), 405)
-
-    @app.errorhandler(410)
-    def request_gone(e):
-        return make_response(jsonify({'error': 'Gone.', 'code': 410}), 410)
+        return make_response(jsonify({'success': False, 'error': str(e), 'code': e.code}), e.code)
 
     if app.debug:
         return
@@ -104,8 +118,17 @@ def configure_error_handlers(app):
     @app.errorhandler(500)
     @app.errorhandler(Exception)
     def server_error_page(error):
+        if hasattr(error, 'get_response'):
+            return _handle_http_exception(error)
+
         app.logger.exception(error)
-        return make_response(jsonify({'error': 'Internal server error. We were notified!', 'code': 500}), 500)
+        output = {
+            'success': False,
+            'error': 'Internal server error. We were notified!',
+            'code': 500
+        }
+
+        return make_response(jsonify(output), 500)
 
 
 def configure_database(app):
@@ -136,7 +159,8 @@ def configure_template_filters(app):
 
 def configure_extensions(app):
     """Configure extensions like mail and login here"""
-    pass
+    if app.config.get('REDIS_NAMESPACE', None) is not None:
+        app.redis_queue = RedisQueue(app.config.get('REDIS_NAMESPACE'), app.config.get('REDIS_URL'))
 
 
 def configure_before_after_request(app):
@@ -160,4 +184,4 @@ def configure_views(app):
         return send_from_directory(app.static_folder, request.path[1:])
 
     # for rule in app.url_map.iter_rules():
-    #    print rule
+    #    print(rule)

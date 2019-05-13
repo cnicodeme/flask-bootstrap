@@ -34,6 +34,9 @@ class Config(object):
     SESSION_COOKIE_SECURE = True
     PERMANENT_SESSION_LIFETIME = timedelta(days=1)
 
+    REDIS_NAMESPACE = ''
+    REDIS_URL = 'redis://localhost:6379'
+
     CONTACT_NAME = ''
     CONTACT_EMAIL = ''
 
