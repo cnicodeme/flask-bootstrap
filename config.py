@@ -9,23 +9,14 @@ class Config(object):
     # Base path
     APPLICATION_PATH = os.path.dirname(os.path.abspath(__file__))
 
-    # use DEBUG mode?
-    DEBUG = True
-
-    # use TESTING mode?
-    TESTING = False
-
-    # use server x-sendfile?
     USE_X_SENDFILE = False
 
     # DATABASE CONFIGURATION
-    SQLALCHEMY_DATABASE_URI = None
     SQLALCHEMY_ECHO = False
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     CSRF_ENABLED = True
     WTF_CSRF_ENABLED = True
-    SECRET_KEY = ''  # import os; os.urandom(24)
 
     # LOGGING
     LOG_LEVEL = logging.INFO
@@ -34,17 +25,24 @@ class Config(object):
     SESSION_COOKIE_SECURE = True
     PERMANENT_SESSION_LIFETIME = timedelta(days=1)
 
-    REDIS_NAMESPACE = ''
-    REDIS_URL = 'redis://localhost:6379'
-
-    CONTACT_NAME = ''
-    CONTACT_EMAIL = ''
-
-    SPARKPOST_KEY = None
-
     # ex: BLUEPRINTS = ['blog']  # where app is a Blueprint instance
     # ex: BLUEPRINTS = [('blog', {'url_prefix': '/myblog'})]  # where app is a Blueprint instance
+
     BLUEPRINTS = [
         # ('base'),
-        ('example', {'url_prefix': '/example/'}),
+        ('ganalytics', {'url_prefix': '/v<int:api_version>/t'}),  # noqa
+        ('accounts',   {'url_prefix': '/v<int:api_version>/account'}),  # noqa
+        ('auth',       {'url_prefix': '/v<int:api_version>/auth'}),  # noqa
+        ('webhooks',   {'url_prefix': '/v<int:api_version>/webhooks'}),  # noqa | For handling webhook events like Stripe or CustomerIO
     ]
+
+
+class Testing(Config):
+    TESTING = True
+    ENV = 'Testing'
+    DEBUG = True
+
+    SQLALCHEMY_DATABASE_URI = "mysql://root:root@127.0.0.1/pdfshift_test?charset=utf8"
+    SESSION_COOKIE_SECURE = False
+    SENTRY_DSN = None
+    REDIS_URL = "redis://localhost:6379"

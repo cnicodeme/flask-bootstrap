@@ -1,5 +1,8 @@
 Flask Bootstrap
 ===============
+
+**version 0.2.1**
+
 Flask-Bootstrap is a simple **flask boilerplate** project for fast flask prototyping.
 Just clone the project and you should be ready to go :)
 
@@ -11,7 +14,11 @@ Installation
 After cloned, install the requirements by calling
 
 ```shell
-pip install -r requirements.txt
+python3 -m venv env
+./env/bin/pip install -r requirements.txt
+
+cp .env.copy .env
+# Edit .env to your needs
 ```
 
 And you are ready to go :)

@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 
-from flask import current_app
-import mimetypes, requests, os
+from flask import current_app, render_template_string
+import mimetypes, requests, os, json
 
 mimetypes.init()
 
@@ -14,23 +14,24 @@ def guess_mimetype(name):
     return 'text/plain'
 
 
-class EmailMessage(object):
+class Mailgun(object):
     def __init__(self, subject, template=None, text=None, html=None):
+        self.files = {}
         self.data = {
-            'options': {
-                'open_tracking': True,
-                'click_tracking': True,
-                'transactional': False,
-                'inline_css': True
-            },
-            'recipients': [],
-            'content': {
-                'subject': subject,
-                'attachments': [],
-                'inline_images': [],
-                'text': None,
-                'html': None,
-            }
+            'from': None,
+            'to': [],
+            'cc': [],
+            'bcc': [],
+            'subject': subject,
+            'text': None,
+            'html': None,
+            'o:tag': None,
+            'o:campaign': None,
+            'o:deliverytime': None,
+            'o:tracking': 'yes',
+            'o:tracking-clicks': 'htmlonly',
+            'o:tracking-opens': 'yes',
+            'h:X-Version': '{} v1'.format(current_app.config.get('APPLICATION_NAME'))
         }
 
         self.set_from(current_app.config['CONTACT_NAME'], current_app.config['CONTACT_EMAIL'])
@@ -41,87 +42,121 @@ class EmailMessage(object):
 
             try:
                 txt_file = open(os.path.join(path, '{0}.txt'.format(template)))
-                self.data['content']['text'] = txt_file.read()
+                self.data['text'] = txt_file.read()
                 txt_file.close()
             except IOError:
-                pass
+                self.data['text'] = None
 
             try:
                 html_file = open(os.path.join(path, '{0}.html'.format(template)))
-                self.data['content']['html'] = html_file.read()
+                self.data['html'] = html_file.read()
                 html_file.close()
             except IOError:
-                pass
+                self.data['html'] = None
 
         if text:
-            self.data['content']['text'] = text
+            self.data['text'] = text
 
         if html:
-            self.data['content']['html'] = html
+            self.data['html'] = html
 
-        if not self.data['content']['text'] and not self.data['content']['html']:
+        if not self.data['text'] and not self.data['html']:
             raise ValueError('Unable to find the specified template.')
 
+    def _set_email(self, name, email):
+        if name is None:
+            return email
+
+        name = name.replace('<', '').replace('>', '').replace('@', '').replace('"', '').replace("'", '')
+        return '{0} <{1}>'.format(name, email)
+
     def set_from(self, from_name, from_email):
-        self.data['content']['from'] = {
-            'name': from_name,
-            'email': from_email
-        }
+        self.data['from'] = self._set_email(from_name, from_email)
 
-        self.data['content']['reply-to'] = from_email
+    def set_reply_to(self, from_name, from_email):
+        self.data['h:Reply-To'] = self._set_email(from_name, from_email)
 
-    def _add(self, kind, name, content, type=None):
+    def add_attachment(self, name, content, type=None):
+        """
+        Add attachment with content as binary content of the opened file
+        """
         if not type:
             type = guess_mimetype(name)
 
-        self.data['content'][kind].append({
-            'type': type,
-            'name': name,
-            'data': content.encode('base64')
-        })
+        #           attachment[0]
+        self.files['attachment[' + str(len(self.files)) + ']'] = (name, content, type)
 
-    def add_attachment(self, name, content, type=None):
-        self._add('attachments', name, content, type)
+    def send(self, account, substitution=None, send_at=None):
+        if not substitution:
+            substitution = {}
 
-    def add_inline(self, name, content, type=None):
-        self._add('inline_images', name, content, type)
+        if 'name' not in substitution:
+            substitution['name'] = str(account)
 
-    def queue(self, name, email, substitution=None):
-        self.data['recipients'].append({
-            'address': {
-                'name': name,
-                'email': email
-            },
-            'substitution_data': substitution
-        })
+        if 'firstname' not in substitution and hasattr(account, 'get_firstname'):
+            substitution['firstname'] = account.get_firstname()
+
+        return self.send_to(
+            str(account),
+            account.email,
+            substitution=substitution,
+            send_at=send_at
+        )
 
     def send_to(self, name, email, substitution=None, send_at=None):
-        self.data['recipients'] = []
-        self.queue(name, email, substitution)
-        return self.send(send_at)
+        self.data['to'] = []
+        self.data['cc'] = []
+        self.data['bcc'] = []
 
-    # TODO Manage sending limit
-    def send(self, send_at=None):
-        if current_app.config.get('SPARKPOST_KEY', None) is None:
-            raise Exception('Missing SPARKPOST_KEY config value.')
+        self.data['to'].append(self._set_email(name, email))
 
+        if substitution is None:
+            substitution = {}
+
+        if substitution:
+            self.data['subject'] = render_template_string(self.data['subject'], **substitution)
+            substitution['subject'] = self.data['subject']
+
+            if self.data['text'] is not None:
+                self.data['text'] = render_template_string(self.data['text'], **substitution)
+
+            if self.data['html'] is not None:
+                self.data['html'] = render_template_string(self.data['html'], **substitution)
+
+        self._send(send_at)
+
+    def _send(self, send_at=None):
+        # We do some changes to data so we make a copy of it
         if send_at:
-            self.data['options']['start_time'] = send_at.replace(microsecond=0).isoformat()
+            # @see http://stackoverflow.com/questions/3453177/convert-python-datetime-to-rfc-2822
+            # Thu, 13 Oct 2011 18:02:00 GMT
+            self.data['o:deliverytime'] = send_at.strftime('%a, %d %b %Y %H:%M:%S') + ' GMT'
 
-        try:
+        debug_mode = False
+        if current_app.config.get('MAILGUN_API_KEY', None) is None:
+            debug_mode = True
+
+        if current_app.debug:
+            debug_mode = True
+
+        if debug_mode:
+            current_app.logger.info('MOCK MAILER')
+            current_app.logger.info(json.dumps(self.data, indent=4))
+        else:
             requests.packages.urllib3.disable_warnings()
-            r = requests.post(
-                'https://api.sparkpost.com/api/v1/transmissions',
-                verify=False,
-                timeout=10,
-                headers={'Authorization': current_app.config['SPARKPOST_KEY']},
-                json=self.data
-            )
-
-            if r.status_code == 200:
-                response = r.json()
-                return response['results']['id']
-        except requests.exceptions.RequestException:
-            current_app.logger.exception('[SparkPost]')
+            r = None
+            try:
+                r = requests.post(
+                    "{0}/messages".format(current_app.config['MAILGUN_API_URL']),
+                    auth=('api', current_app.config['MAILGUN_API_KEY']),
+                    data=self.data,
+                    files=self.files,
+                    verify=False,
+                    timeout=20
+                )
+                r.raise_for_status()
+                return r.json()
+            except requests.exceptions.RequestException:
+                pass
 
         return None

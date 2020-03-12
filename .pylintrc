@@ -1,0 +1,14 @@
+[MESSAGES CONTROL]
+# C0111:Missing module docstring
+# C0411:standard import "..." should be placed before "..."
+# C0103: Constant name "basepath" doesn't conform to UPPER_CASE naming style
+# C0301:Line too long (119/100)
+# W0612:Unused variable '...'
+# W0105:String statement has no effect
+# W0511:XXX : {Message}
+# W1202:Use % formatting in logging functions and pass the % parameters as arguments
+# W0703:Catching too general exception Exception
+# W0613:Unused argument 'address'
+# C0410:Multiple imports on one line
+# C0412:Imports from package XXX are not grouped
+disable=C0111,C0411,C0103,C0301,W0612,W0105,W0511,W1202,W0703,W0613,C0410,C0412,C0326

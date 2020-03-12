@@ -6,4 +6,10 @@ Flask-SQLAlchemy
 Flask-Migrate
 WTForms
 requests
+requests[security]
 redis
+python-dotenv
+mysqlclient
+sentry-sdk
+sentry-sdk[flask]
+bcrypt

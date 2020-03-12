@@ -1,0 +1,11 @@
+Hi {{ firstname }},
+
+Thank you for using {{ config['APPLICATION_NAME'] }}!
+
+In order to validate your account, please click on the link below:
+
+{{ link }}
+
+(If you didn't request this email, simply ignore it, nothing has been changed on your account).
+
+All the best from {{ config['APPLICATION_NAME'] }}

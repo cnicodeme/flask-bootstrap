@@ -1,25 +1,33 @@
 # coding:utf-8
 
 from werkzeug.utils import import_string
-
+from flask import current_app
 from unittest import TestCase
-import os, unittest, config
+import os, unittest
 
 
 class BlueprintTesting():
+    def __init__(self, blueprint=None, tests=None):
+        self.blueprint = blueprint
+        self.tests = tests
+
     def suite(self):
         # Must return a suite of objects
         suite = unittest.TestSuite()
 
-        for blueprint in config.Testing.BLUEPRINTS:
-            if isinstance(blueprint, str):
-                package = blueprint
-            else:
-                package = blueprint[0]
+        if 'BLUEPRINTS' in current_app.config:
+            for blueprint in current_app.config['BLUEPRINTS']:
+                if isinstance(blueprint, str):
+                    package = blueprint
+                else:
+                    package = blueprint[0]
 
-            self._fetch_directory('apps/%s/tests' % package, suite)
+                if self.blueprint and package != self.blueprint:
+                    continue
 
-        return suite
+                self._fetch_directory('apps/%s/tests' % package, suite)
+
+            return suite
 
     def _fetch_directory(self, directory, suite):
         """
@@ -30,8 +38,14 @@ class BlueprintTesting():
                 new_path = '%s/%s' % (directory, file)
                 if os.path.isdir(new_path):
                     self._fetch_directory(new_path, suite)
+                else:
+                    if file.startswith('__init__'):
+                        continue
+                    elif not file.endswith('.py'):
+                        continue
+                    elif self.tests and file[0:-3] != self.tests:
+                        continue
 
-                if not file.startswith('__init__') and file.endswith('.py'):
                     self._load_suite(new_path, suite)
 
     def _load_suite(self, file, suite):
@@ -47,25 +61,9 @@ class BaseTestCase(TestCase):
         print("")
         print(cls.__display__)
 
-        from main import app_factory
-        from database import db, create_all, drop_all
-
-        cls.app = app_factory(config.Testing)
-        cls.client = cls.app.test_client()
-
-        drop_all()
-        create_all()
-
-        db.engine.execute('INSERT INTO ...')  # Maybe some default datas ?
-
     @classmethod
     def tearDownClass(cls):
-        from database import db, drop_all, remove_session
-
-        drop_all()
-        remove_session()
-
-        db.engine.execute('DELETE FROM ...')  # Maybe some default datas ?
+        pass
 
     def setUp(self):
         pass

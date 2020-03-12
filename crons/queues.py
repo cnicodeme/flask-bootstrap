@@ -2,7 +2,7 @@
 
 from flask import current_app
 from flask_script import Command, Option
-from werkzeug import import_string
+from werkzeug.utils import import_string
 from utils.signals import GracefulInterruptHandler
 
 

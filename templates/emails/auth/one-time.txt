@@ -1,0 +1,11 @@
+Hi {{ firstname }},
+
+You requested access to your account at {{ config['APPLICATION_NAME'] }}.
+
+Simply click on the link below, and you will be automatically connected.
+
+{{ link }}
+
+If you didn't request this email, simply ignore it, nothing has been changed on your account :)
+
+All the best from {{ config['APPLICATION_NAME'] }}

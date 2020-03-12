@@ -30,6 +30,10 @@ try:
                     return None
 
             return item
+
+        def pipeline(self):
+            return self.__db.pipeline()
+
 except ImportError:
     class RedisQueue(object):
         def __init__(self, namespace, redis_url):

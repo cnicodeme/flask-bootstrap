@@ -1,0 +1,12 @@
+Hi {{ firstname }},
+
+You modified your email on {{ config['APPLICATION_NAME'] }} and in order to validate it, you need to click on the link below:
+
+{{ link }}
+
+(If you didn't request this email, simply ignore it, nothing has been changed on your account).
+
+Thank you for using {{ config['APPLICATION_NAME'] }}
+
+Best regards,
+{{ config['APPLICATION_NAME'] }}.
